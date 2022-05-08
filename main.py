@@ -1,4 +1,5 @@
-from flask import Flask, render_template, redirect, url_for, flash, abort
+import smtplib
+from flask import Flask, render_template, redirect, url_for, flash, abort, request
 from flask_bootstrap import Bootstrap
 from flask_ckeditor import CKEditor
 from datetime import date
@@ -16,7 +17,7 @@ ckeditor = CKEditor(app)
 Bootstrap(app)
 gravatar = Gravatar(app, size=100, rating='g', default='retro', force_default=False, force_lower=False, use_ssl=False, base_url=None)
 
-##CONNECT TO DB
+# CONNECT TO DB
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -29,7 +30,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-##CONFIGURE TABLE
+# CONFIGURE TABLE
 class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -61,6 +62,8 @@ class Comment(db.Model):
     parent_post = relationship("BlogPost", back_populates="comments")
     comment_author = relationship("User", back_populates="comments")
     text = db.Column(db.Text, nullable=False)
+
+
 db.create_all()
 
 
@@ -86,7 +89,7 @@ def register():
 
         if User.query.filter_by(email=form.email.data).first():
             print(User.query.filter_by(email=form.email.data).first())
-            #User already exists
+            # User already exists
             flash("You've already signed up with that email, log in instead!")
             return redirect(url_for('login'))
 
@@ -161,9 +164,21 @@ def about():
     return render_template("about.html", current_user=current_user)
 
 
-@app.route("/contact")
+@app.route("/contact", methods=["GET", "POST"])
 def contact():
-    return render_template("contact.html", current_user=current_user)
+    if request.method == "POST":
+        data = request.form
+        send_email(data['name'], data['email'], data['phone'], data['message'])
+        return render_template("contact.html", msg_sent=True)
+    return render_template("contact.html", msg_sent=False)
+
+
+def send_email(name, email, phone, message):
+    email_message = f"subject:New Message\n\nName: {name}\nEmail: {email}\nPhone: {phone}\nMessage: {message}"
+    with smtplib.SMTP("smtp.gmail.com") as connection:
+        connection.starttls()
+        connection.login("tariqautopy@gmail.com", "qapqat-2xypTu-qebvag")
+        connection.sendmail("tariqautopy@gmail.com", "tariqbaater@gmail.com", email_message)
 
 
 @app.route("/new-post", methods=["GET", "POST"])
@@ -184,8 +199,6 @@ def add_new_post():
         return redirect(url_for("get_all_posts"))
 
     return render_template("make-post.html", form=form, current_user=current_user)
-
-
 
 
 @app.route("/edit-post/<int:post_id>", methods=["GET", "POST"])
@@ -220,4 +233,4 @@ def delete_post(post_id):
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True)
