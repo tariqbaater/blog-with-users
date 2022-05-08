@@ -10,9 +10,18 @@ from sqlalchemy.orm import relationship
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
 from forms import LoginForm, RegisterForm, CreatePostForm, CommentForm
 from flask_gravatar import Gravatar
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+# Variables
+SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+app.config['SECRET_KEY'] = SECRET_KEY
 ckeditor = CKEditor(app)
 Bootstrap(app)
 gravatar = Gravatar(app, size=100, rating='g', default='retro', force_default=False, force_lower=False, use_ssl=False, base_url=None)
@@ -177,8 +186,8 @@ def send_email(name, email, phone, message):
     email_message = f"subject:New Message\n\nName: {name}\nEmail: {email}\nPhone: {phone}\nMessage: {message}"
     with smtplib.SMTP("smtp.gmail.com") as connection:
         connection.starttls()
-        connection.login("tariqautopy@gmail.com", "qapqat-2xypTu-qebvag")
-        connection.sendmail("tariqautopy@gmail.com", "tariqbaater@gmail.com", email_message)
+        connection.login(SENDER_EMAIL, SENDER_PASSWORD)
+        connection.sendmail(SENDER_EMAIL, email, email_message)
 
 
 @app.route("/new-post", methods=["GET", "POST"])
